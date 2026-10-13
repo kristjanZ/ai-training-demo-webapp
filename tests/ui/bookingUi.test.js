@@ -76,8 +76,21 @@ describe('Booking UI (automationintesting.online)', () => {
   async function openFirstRoom() {
     await driver.get(BASE_URL);
     const bookNow = await driver.wait(until.elementLocated(By.xpath('(//a[normalize-space()="Book now"])[1]')), 15000);
-    await scrollAndClick(bookNow);
-    await driver.wait(until.elementLocated(By.css('.rbc-calendar')), 15000);
+    // A click made while the page is still loading is sometimes ignored, so click again until we leave the home page.
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      await scrollAndClick(bookNow);
+      try {
+        await driver.wait(until.urlContains('/reservation/'), 5000);
+        break;
+      } catch (error) {
+        if (attempt === 3) throw error;
+      }
+    }
+    try {
+      await driver.wait(until.elementLocated(By.css('.rbc-calendar')), 15000);
+    } catch (error) {
+      throw new Error(`Calendar not shown at ${await driver.getCurrentUrl()}. Page text: ${(await pageText()).slice(0, 300)}`);
+    }
   }
 
   async function selectNights({ checkin, monthsAhead }) {
@@ -138,16 +151,22 @@ describe('Booking UI (automationintesting.online)', () => {
   }
 
   test('S1 booking with valid data shows "Booking Confirmed" and the chosen dates', async () => {
-    const stay = await startReservation();
-    await fillForm(guest);
-    await clickButton('Reserve Now');
-
-    try {
-      await driver.wait(async () => (await pageText()).includes('Booking Confirmed'), 15000);
-    } catch (error) {
-      throw new Error(`Booking Confirmed not shown for ${isoDate(stay.checkin)}..${isoDate(stay.checkout)}. Page text: ${(await pageText()).slice(0, 600)}`);
+    // The server answers 409 for dates that are already booked, even if the calendar let us pick them,
+    // and the page then shows "This page couldn't load". That is a test-data clash on the shared
+    // demo site, so retry with new random dates instead of failing.
+    let stay;
+    let text;
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      stay = await startReservation();
+      await fillForm(guest);
+      await clickButton('Reserve Now');
+      await driver.wait(async () => {
+        text = await pageText();
+        return text.includes('Booking Confirmed') || text.includes("This page couldn’t load");
+      }, 15000, 'neither confirmation nor error page appeared');
+      if (text.includes('Booking Confirmed')) break;
     }
-    const text = await pageText();
+
     expect(text).toContain('Booking Confirmed');
     expect(text).toContain(isoDate(stay.checkin));
     expect(text).toContain(isoDate(stay.checkout));
