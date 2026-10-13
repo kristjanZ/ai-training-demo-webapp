@@ -1,0 +1,432 @@
+{
+  "info": {
+    "name": "Broneering API (restful-booker)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://restful-booker.herokuapp.com"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "bookingid",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0 POST /auth - token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('auth: status 200', () => pm.response.to.have.status(200));",
+              "const t = pm.response.json().token;",
+              "pm.test('auth: token is returned', () => pm.expect(t).to.be.a('string').and.not.empty);",
+              "pm.collectionVariables.set('token', t);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth"
+          ]
+        }
+      }
+    },
+    {
+      "name": "1 POST /booking - happy path salvestab andmed",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('create: status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('create: response echoes booking', () => { pm.expect(j.bookingid).to.be.a('number'); pm.expect(j.booking.firstname).to.eql('Jüri'); pm.expect(j.booking.bookingdates).to.eql({checkin:'2026-12-01',checkout:'2026-12-05'}); });",
+              "pm.collectionVariables.set('bookingid', j.bookingid);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstname\": \"Jüri\",\n  \"lastname\": \"Tamm\",\n  \"totalprice\": 15000,\n  \"depositpaid\": true,\n  \"bookingdates\": {\n    \"checkin\": \"2026-12-01\",\n    \"checkout\": \"2026-12-05\"\n  },\n  \"additionalneeds\": \"Hommikusöök\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/booking",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "booking"
+          ]
+        }
+      }
+    },
+    {
+      "name": "2 GET /booking/:id - salvestatud andmed on samad",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('get: status 200', () => pm.response.to.have.status(200));",
+              "pm.test('get: stored body equals what was sent', () => pm.expect(pm.response.json()).to.eql({firstname:'Jüri',lastname:'Tamm',totalprice:15000,depositpaid:true,bookingdates:{checkin:'2026-12-01',checkout:'2026-12-05'},additionalneeds:'Hommikusöök'}));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/booking/{{bookingid}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "booking",
+            "{{bookingid}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3 PUT /booking/:id - ilma tokenita keelatud",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('put without token: status 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstname\": \"Muudetud\",\n  \"lastname\": \"Tamm\",\n  \"totalprice\": 15000,\n  \"depositpaid\": true,\n  \"bookingdates\": {\n    \"checkin\": \"2026-12-02\",\n    \"checkout\": \"2026-12-06\"\n  },\n  \"additionalneeds\": \"Hommikusöök\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/booking/{{bookingid}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "booking",
+            "{{bookingid}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3b GET - ilma tokenita muutus ei salvestunud",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('unauthorised PUT did not change stored data', () => { pm.expect(pm.response.code).to.eql(200); const j = pm.response.json(); pm.expect(j.firstname).to.eql('Jüri'); pm.expect(j.bookingdates.checkin).to.eql('2026-12-01'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/booking/{{bookingid}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "booking",
+            "{{bookingid}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4 PUT /booking/:id - tokeniga muudab kuupäevad",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('put: status 200', () => pm.response.to.have.status(200));",
+              "pm.test('put: response has new dates', () => pm.expect(pm.response.json().bookingdates).to.eql({checkin:'2026-12-10',checkout:'2026-12-15'}));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "token={{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstname\": \"Jüri\",\n  \"lastname\": \"Tamm\",\n  \"totalprice\": 15000,\n  \"depositpaid\": true,\n  \"bookingdates\": {\n    \"checkin\": \"2026-12-10\",\n    \"checkout\": \"2026-12-15\"\n  },\n  \"additionalneeds\": \"Hommikusöök\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/booking/{{bookingid}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "booking",
+            "{{bookingid}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4b GET - uued kuupäevad on salvestatud",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('get after put: status 200', () => pm.response.to.have.status(200));",
+              "pm.test('get after put: stored dates are the new ones', () => pm.expect(pm.response.json().bookingdates).to.eql({checkin:'2026-12-10',checkout:'2026-12-15'}));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/booking/{{bookingid}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "booking",
+            "{{bookingid}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5 DELETE /booking/:id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('delete: status 201', () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Cookie",
+            "value": "token={{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/booking/{{bookingid}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "booking",
+            "{{bookingid}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5b GET - kustutatud broneering on 404",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('get after delete: status 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/booking/{{bookingid}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "booking",
+            "{{bookingid}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "6 POST /booking - nouue 2.1: lahkumine enne saabumist",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('req 2.1: checkout before checkin is rejected with 400', () => pm.response.to.have.status(400));",
+              "let id; try { id = pm.response.json().bookingid; } catch (e) {}",
+              "if (id) {",
+              "  pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}') + '/booking/' + id, method: 'GET', header: { Accept: 'application/json' } }, (err, res) => {",
+              "    pm.test('req 2.1: invalid booking was NOT stored (GET returns 404)', () => pm.expect(res.code).to.eql(404));",
+              "  });",
+              "} else { pm.test('req 2.1: no booking id issued', () => pm.expect(id).to.be.undefined); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstname\": \"Õie\",\n  \"lastname\": \"Kask\",\n  \"totalprice\": 15000,\n  \"depositpaid\": true,\n  \"bookingdates\": {\n    \"checkin\": \"2026-12-20\",\n    \"checkout\": \"2026-12-15\"\n  },\n  \"additionalneeds\": \"Hommikusöök\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/booking",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "booking"
+          ]
+        }
+      }
+    }
+  ]
+}

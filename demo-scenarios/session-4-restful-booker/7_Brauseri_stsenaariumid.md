@@ -45,8 +45,9 @@ Vormide saatmine loob avalikus demosüsteemis päris kirje — ärge sisestage p
 
 ## S5 — Teie oma stsenaarium
 
-Valige üks risk oma Harjutus 1 väljundist ja kirjutage see samasse formaati:
-eeltingimus · sammud · oodatav tulemus (viidake nõude numbrile).
+- **Eeltingimus:** nagu S1, sammud 1–3
+- **Sammud:** täitke vorm testandmetega, **aga Email, Phone tühjaks** → „Reserve Now“
+- **Oodatav tulemus:** broneeringut ei kinnitata; lehel on selge veateade, mis nimetab puuduvad väljad
 
 ---
 

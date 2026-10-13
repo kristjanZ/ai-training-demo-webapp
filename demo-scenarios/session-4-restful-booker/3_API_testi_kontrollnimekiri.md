@@ -39,3 +39,22 @@ Ideid alustamiseks:
 
 API-t kasutavad korraga kõik ja andmed muutuvad pidevalt (ka taastumine algseisu). Kui teie broneering
 kaob, uurige enne viga raporteerimist, miks.
+
+## Automaattestid
+
+Formaat: Postmani kollektsioon `automation/api/broneering.postman_collection.json`
+Käivitus: `npm run test:api -- automation/api/broneering.postman_collection.json`
+
+Iga test kontrollib staatuskoodi **ja** seda, mis kehas tegelikult salvestati (järelpäring `GET`).
+
+| # | Test | Staatus + salvestatud keha | Tulemus |
+|---|------|----------------------------|---------|
+| 1 | `POST /booking` happy path, seejärel `GET` | 200; GET tagastab täpselt saadetud andmed (täpitähed, kuupäevad, hind) | 🟢 roheline |
+| 2 | `PUT /booking/:id` ilma tokenita | 403; järgmine GET näitab, et andmed jäid muutmata | 🟢 roheline |
+| 3 | `PUT /booking/:id` tokeniga | 200; GET näitab uusi kuupäevi | 🟢 roheline |
+| 4 | `DELETE /booking/:id` | 201; järgmine GET on 404 | 🟢 roheline |
+| 5 | Nõue 2.1: lahkumine (2026-12-15) enne saabumist (2026-12-20) | oodatud 400 ja broneeringut ei salvestata (GET → 404) | 🔴 punane |
+
+Punase põhjus (test 5): API vastas **200** ja lõi broneeringu, GET leidis selle (200, mitte 404).
+API ei valideeri kuupäevade järjekorda, mis on vastuolus nõudega 2.1 — tõenäoline päris viga.
+Oodatavat tulemust ei muudetud, see tuleb nõudest, mitte API käitumisest.
